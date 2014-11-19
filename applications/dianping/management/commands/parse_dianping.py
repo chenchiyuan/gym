@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from applications.dianping.models import Shop
 import requests
 
-base_url = "http://www.dianping.com/search/category/2/45/g147"
+base_url = lambda number: "http://www.dianping.com/search/category/%d/45/g147" % number
 
 headers = {
     "referer": "http://www.dianping.com/",
@@ -17,22 +17,24 @@ headers = {
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        urls = self.gen_pages()
-        for url in urls:
-            self.parse_url(url)
+        for number in range(1, 25):
+            urls = self.gen_pages(number)
+            for url in urls:
+                self.parse_url(url)
 
-    def gen_pages(self):
+    def gen_pages(self, number):
         pages = range(1, 51)
         urls = []
         for page in pages:
-            urls.append("%sp%d" % (base_url, page))
+            urls.append("%sp%d" % (base_url(number), page))
         return urls
 
     def parse_url(self, url):
         content = requests.get(url, headers=headers).content
         soup = BeautifulSoup(content)
-        tag_as = soup.find_all(class_="shopname")
-        for tag_a in tag_as:
+        txts = soup.find_all(class_="txt")
+        for txt in txts:
+            tag_a = txt.find("a")
             href = tag_a.attrs.get("href", "")
             shop_id = href.replace("/shop/", "")
             name = tag_a.attrs.get("title", "")
